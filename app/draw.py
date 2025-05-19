@@ -34,35 +34,22 @@ def check_api_key(x_api_key: str = Header(...)):
 
 @router.post("/draw-now", dependencies=[Depends(check_api_key)])
 def draw_now(db: Session = Depends(get_db)):
+    # 🧩 Step 1: Get all eligible tickets
     pool = db.query(models.Ticket).filter(
         models.Ticket.confirmed == True,
         models.Ticket.is_winner == False
     ).all()
 
-    print(f"\n[🎯 DRAW INITIATED] {len(pool)} eligible entries")
+    print(f"\n[🎯 DRAW INITIATED] Eligible entries found: {len(pool)}")
 
     if not pool:
-        print("[⚠️ NO ENTRIES FOUND] Creating fallback test ticket...")
-        fallback = models.Ticket(
-            phone="254700000001",
-            game_type="daily",
-            amount=50,
-            entry_code=str(random.randint(10000000, 99999999)),
-            confirmed=True
+        raise HTTPException(
+            status_code=400,
+            detail="No eligible tickets found. Make sure users have entered and confirmed payment."
         )
-        db.add(fallback)
-        db.commit()
-        db.refresh(fallback)
-        pool = [fallback]
 
-    print("[🔄 SHUFFLING ENTRIES]")
+    # 🔄 Step 2: Shuffle and pick winner
     random.shuffle(pool)
-
-    print("[⏱️ COUNTDOWN] Preparing to draw...")
-    for i in range(3, 0, -1):
-        print(f"🎬 Drawing in {i}...")
-        time.sleep(1)
-
     winner = random.choice(pool)
     winner.is_winner = True
     db.commit()
@@ -71,11 +58,13 @@ def draw_now(db: Session = Depends(get_db)):
     print(f"📱 {winner.phone}")
     print(f"🎟️ Code: {winner.entry_code}")
 
+    # 📩 Step 3: Send winner SMS
     message = (
         f"🎉 Congratulations!\n"
         f"You've won the Tushinde draw.\n"
         f"Entry Code: {winner.entry_code}\n"
-        f"Check tushinde.com for prize details!"
+        f"Draw Date: {winner.created_at.strftime('%d-%b-%Y')}\n"
+        f"Visit tushinde.com for prize info."
     )
 
     sms_id = notifier.send_sms(winner.phone, message)
@@ -84,15 +73,17 @@ def draw_now(db: Session = Depends(get_db)):
 
     print(f"[📩 SMS DISPATCHED] ID: {winner.sms_id}")
 
-    # 💾 Log draw event
+    # 🧾 Step 4: Log draw event
     draw_event = models.DrawEvent(
         ticket_id=winner.id,
         phone=winner.phone,
         entry_code=winner.entry_code,
-        sms_id=winner.sms_id
+        sms_id=winner.sms_id,
+        payout_status="pending"
     )
     db.add(draw_event)
     db.commit()
+    print(f"[💾 DRAW EVENT SAVED] ID: {draw_event.id}")
 
     return {
         "message": "Draw completed successfully.",
@@ -107,13 +98,22 @@ def draw_now(db: Session = Depends(get_db)):
 def get_draw_history(db: Session = Depends(get_db)):
     draw_logs = db.query(models.DrawEvent).order_by(models.DrawEvent.draw_time.desc()).limit(10).all()
 
+    print(f"[🔍 HISTORY] Found {len(draw_logs)} events")
+    for d in draw_logs:
+        print(f" ↪️ {d.entry_code} | {d.phone} | {d.draw_time}")
+
     return [
         {
             "entry_code": d.entry_code,
             "phone": d.phone,
             "sms_id": d.sms_id,
-            "draw_time": d.draw_time,
+            "draw_time": str(d.draw_time),
             "payout_status": d.payout_status
         }
         for d in draw_logs
     ]
+
+
+@router.get("/debug/tickets")
+def debug_tickets(db: Session = Depends(get_db)):
+    return db.query(models.Ticket).order_by(models.Ticket.created_at.desc()).limit(10).all()
