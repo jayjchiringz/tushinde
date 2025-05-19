@@ -1,5 +1,7 @@
-# main.py — WSGI entrypoint for PythonAnywhere
-from fastapi.middleware.wsgi import WSGIMiddleware # type: ignore
-from app.main import app as fastapi_app
+# main.py — ASGI to WSGI bridge for PythonAnywhere (no external libs)
+from fastapi import FastAPI # type: ignore
+from app.main import app  # Your FastAPI app
+from fastapi.middleware.wsgi import WSGIMiddleware  # type: ignore
 
-application = WSGIMiddleware(fastapi_app)
+# Wrap FastAPI with WSGI middleware so PythonAnywhere can run it
+application = WSGIMiddleware(app)
