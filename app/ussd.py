@@ -16,12 +16,14 @@ def get_db():
 def parse_ussd_steps(text: str) -> list[str]:
     return text.strip().split("*") if text else []
 
+
 def generate_entry_code() -> str:
     return str(uuid.uuid4()).split("-")[0].upper()
 
 
 @router.post("/ussd/entry")
 async def ussd_entry(request: Request, db: Session = Depends(get_db)):
+    print("[🛰️ AT CALLBACK RECEIVED]")
     try:
         form = await request.form()
         session_id = form.get("sessionId")
