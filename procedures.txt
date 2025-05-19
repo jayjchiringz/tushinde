@@ -12,3 +12,7 @@ alembic upgrade head
 
 
 postgresql://postgres:Godlovesus2!@db.hwwvkpdbsbgzmqlgryqt.supabase.co:5432/postgres
+
+
+pip install requests
+pip freeze > requirements.txt
