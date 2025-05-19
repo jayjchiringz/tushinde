@@ -8,3 +8,7 @@ alembic upgrade head
 
 alembic revision --autogenerate -m "Add DrawEvent table"
 alembic upgrade head
+
+
+
+postgresql://postgres:Godlovesus2!@db.hwwvkpdbsbgzmqlgryqt.supabase.co:5432/postgres
