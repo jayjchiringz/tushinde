@@ -115,5 +115,15 @@ def get_draw_history(db: Session = Depends(get_db)):
 
 
 @router.get("/debug/tickets")
-def debug_tickets(db: Session = Depends(get_db)):
-    return db.query(models.Ticket).order_by(models.Ticket.created_at.desc()).limit(10).all()
+def get_tickets(db: Session = Depends(get_db)):
+    return [
+        {
+            "entry_code": t.entry_code,
+            "confirmed": t.confirmed,
+            "phone": t.phone,
+            "created_at": str(t.created_at),
+            "is_winner": t.is_winner,
+            "sms_id": t.sms_id
+        }
+        for t in db.query(models.Ticket).order_by(models.Ticket.created_at.desc()).limit(10).all()
+    ]

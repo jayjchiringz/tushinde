@@ -18,7 +18,9 @@ def mock_payment(data: schemas.PaymentConfirm, db: Session = Depends(get_db)):
         print(f"[❌ PAYMENT ERROR] No ticket found for code {data.entry_code}")
         return {"error": "Invalid code"}
 
-        ticket.confirmed = True
+    # ✅ Move this line out of unreachable code
+    ticket.confirmed = True
+
     sms_id = notifier.send_sms(ticket.phone, f"Payment received! Your ticket {ticket.entry_code} is entered.")
     ticket.sms_id = sms_id or "unknown"
     db.commit()
