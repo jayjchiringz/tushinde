@@ -1,0 +1,12 @@
+# Run server
+uvicorn app.main:app --reload
+
+
+# Alembic migrations
+alembic revision --autogenerate -m "Add sms_id to Ticket"
+alembic upgrade head
+
+alembic revision --autogenerate -m "Add DrawEvent table"
+alembic upgrade head
+
+
